@@ -3,6 +3,7 @@ name = "aigames"
 version = "0.1.0"
 requires-python = ">=3.11"
 dependencies = [
+    "confine-controller>=1.0.2",
     "google-genai>=2.20.0",
     "pygame>=2.6.1",
 ]

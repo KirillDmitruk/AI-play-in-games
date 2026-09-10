@@ -1,175 +1,89 @@
+"""Snake rules without window, network requests or import side effects."""
 import random
+from dataclasses import dataclass
 
-import pygame
-
-SCREEN_WIDTH = 600
-SCREEN_HEIGHT = 600
-
-CELL_SIZE = 30
-SNAKE_SPEED = 10
-
-BLACK = (0, 0, 0)
-RED = (255, 0, 0)
-GREEN = (0, 128, 0)
-
-pygame.init()
-
-screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
-pygame.display.set_caption("AI Snake")
-
-clock = pygame.time.Clock()
-running = True
-
-# Размер игрового поля в клетках
-GRID_WIDTH = SCREEN_WIDTH // CELL_SIZE
-GRID_HEIGHT = SCREEN_HEIGHT // CELL_SIZE
-
-# Начальная позиция змейки
-snake_pos = [GRID_WIDTH // 2, GRID_HEIGHT // 2]
-
-# Тело змейки
-snake_body = [snake_pos.copy()]
-
-# Начальная длина
-snake_length = 1
-
-# Начальное направление — вправо
-snake_direction = (1, 0)
+DIRECTIONS = {'UP': (0, -1), 'DOWN': (0, 1), 'LEFT': (-1, 0), 'RIGHT': (1, 0)}
+OPPOSITE = {'UP': 'DOWN', 'DOWN': 'UP', 'LEFT': 'RIGHT', 'RIGHT': 'LEFT'}
 
 
-def create_food():
-    food = [
-        random.randrange(0, GRID_WIDTH),
-        random.randrange(0, GRID_HEIGHT)
-    ]
-
-    while food in snake_body:
-        food = [
-            random.randrange(0, GRID_WIDTH),
-            random.randrange(0, GRID_HEIGHT)
-        ]
-
-    return food
+@dataclass(frozen=True)
+class StepResult:
+    requested: str
+    applied: str | None
+    ate: bool = False
+    reason: str | None = None
 
 
-def change_direction(action, current_direction):
-    if action == "UP" and current_direction != (0, 1):
-        return (0, -1)
+class SnakeGame:
+    def __init__(self, width=20, height=20, seed=None, max_steps=2000, max_idle_steps=200):
+        if width < 2 or height < 2:
+            raise ValueError('Board dimensions must be at least 2')
+        self.width, self.height = width, height
+        self.seed = seed if seed is not None else random.SystemRandom().randrange(2 ** 32)
+        self.rng = random.Random(self.seed)
+        self.body = [(width // 2, height // 2)]  # tail -> head
+        self.direction = 'RIGHT'
+        self.steps = self.idle_steps = self.score = 0
+        self.max_steps, self.max_idle_steps = max_steps, max_idle_steps
+        self.done = False
+        self.reason = None
+        self.food = self.create_food()
 
-    elif action == "DOWN" and current_direction != (0, -1):
-        return (0, 1)
+    @property
+    def head(self):
+        return self.body[-1]
 
-    elif action == "LEFT" and current_direction != (1, 0):
-        return (-1, 0)
+    def create_food(self):
+        occupied = set(self.body)
+        free = [(x, y) for y in range(self.height) for x in range(self.width)
+                if (x, y) not in occupied]
+        return self.rng.choice(free) if free else None
 
-    elif action == "RIGHT" and current_direction != (-1, 0):
-        return (1, 0)
+    def finish(self, reason):
+        self.done, self.reason = True, reason
 
-    return current_direction
+    def step(self, action):
+        if self.done:
+            return StepResult(action, None, reason='finished')
+        if action not in DIRECTIONS:
+            return StepResult(action, None, reason='invalid_action')
+        if action == OPPOSITE[self.direction]:
+            return StepResult(action, None, reason='reverse')
+        dx, dy = DIRECTIONS[action]
+        head = ((self.head[0] + dx) % self.width, (self.head[1] + dy) % self.height)
+        ate = head == self.food
+        occupied = self.body if ate else self.body[1:]
+        self.direction = action
+        self.steps += 1
+        self.idle_steps += 1
+        if head in occupied:
+            self.finish('collision')
+            return StepResult(action, action, reason=self.reason)
+        self.body.append(head)
+        if ate:
+            self.score += 1
+            self.idle_steps = 0
+            self.food = self.create_food()  # includes the NEW head
+            if self.food is None:
+                self.finish('win')
+        else:
+            self.body.pop(0)
+        if not self.done and self.steps >= self.max_steps:
+            self.finish('step_limit')
+        if not self.done and self.idle_steps >= self.max_idle_steps:
+            self.finish('idle_limit')
+        return StepResult(action, action, ate, self.reason)
+
+    def snapshot(self):
+        return {'grid_width': self.width, 'grid_height': self.height,
+                'head': list(self.head), 'body': [list(p) for p in self.body],
+                'food': list(self.food) if self.food is not None else None,
+                'direction': self.direction, 'steps': self.steps, 'score': self.score,
+                'idle_steps': self.idle_steps, 'done': self.done, 'reason': self.reason,
+                'seed': self.seed}
 
 
-def direction_to_string(direction):
-    directions = {
-        (0, -1): "UP",
-        (0, 1): "DOWN",
-        (-1, 0): "LEFT",
-        (1, 0): "RIGHT"
-    }
+if __name__ == '__main__':
+    from main import main
 
-    return directions[direction]
-
-
-food_pos = create_food()
-
-while running:
-
-    action = None
-
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            running = False
-
-        if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_w:
-                action = "UP"
-            elif event.key == pygame.K_s:
-                action = "DOWN"
-            elif event.key == pygame.K_a:
-                action = "LEFT"
-            elif event.key == pygame.K_d:
-                action = "RIGHT"
-
-    # Если игрок дал команду
-    if action is not None:
-        snake_direction = change_direction(
-            action,
-            snake_direction
-        )
-
-    # Направление
-    dx, dy = snake_direction
-
-    # Текущая позиция головы
-    x, y = snake_pos
-
-    # Новая позиция
-    x += dx
-    y += dy
-
-    # Переход через края поля
-    x %= GRID_WIDTH
-    y %= GRID_HEIGHT
-
-    snake_pos = [x, y]
-
-    # Проверяем яблоко
-    if snake_pos == food_pos:
-        snake_length += 1
-        food_pos = create_food()
-
-    # Добавляем новую голову
-    snake_body.append(snake_pos.copy())
-
-    # Если не выросли — удаляем хвост
-    if len(snake_body) > snake_length:
-        snake_body.pop(0)
-
-    # Столкновение с собой
-    if snake_pos in snake_body[:-1]:
-        running = False
-
-    # Отрисовка
-    screen.fill(BLACK)
-
-    # Змейка
-    for segment in snake_body:
-        segment_x, segment_y = segment
-
-        pygame.draw.rect(
-            screen,
-            GREEN,
-            [
-                segment_x * CELL_SIZE,
-                segment_y * CELL_SIZE,
-                CELL_SIZE,
-                CELL_SIZE
-            ]
-        )
-
-    # Яблоко
-    pygame.draw.rect(
-        screen,
-        RED,
-        [
-            food_pos[0] * CELL_SIZE,
-            food_pos[1] * CELL_SIZE,
-            CELL_SIZE,
-            CELL_SIZE
-        ]
-    )
-
-    pygame.display.flip()
-
-    clock.tick(SNAKE_SPEED)
-
-pygame.quit()
+    main(['--manual'])

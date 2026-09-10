@@ -11,12 +11,14 @@ name = "aigames"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
+    { name = "confine-controller" },
     { name = "google-genai" },
     { name = "pygame" },
 ]
 
 [package.metadata]
 requires-dist = [
+    { name = "confine-controller", specifier = ">=1.0.2" },
     { name = "google-genai", specifier = ">=2.20.0" },
     { name = "pygame", specifier = ">=2.6.1" },
 ]
@@ -296,6 +298,12 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/f0/a7/920baf467bfd9bf689f3b318340f37aee4572a71f162bd8db51da55ba4fa/charset_normalizer-3.5.1-cp37-abi3-win_arm64.whl", hash = "sha256:87e4f41d375c0b9be2fb5251aee4b8a689169e134535aed81bf085c3b647451e", size = 287318, upload-time = "2026-08-15T08:20:15.551Z" },
     { url = "https://files.pythonhosted.org/packages/cc/61/d01fc49b8dea277640b55a9e15960dbca9fdc8c9fde18e572d39c59f4019/charset_normalizer-3.5.1-py3-none-any.whl", hash = "sha256:6df0ec430f9a831772c23ca5a224cba36517a58a84bb32c32bb59a9fa67c47f6", size = 68658, upload-time = "2026-08-15T08:20:43.306Z" },
 ]
+
+[[package]]
+name = "confine-controller"
+version = "1.0.2"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/b0/eb/d2eef987d42a9324675af3669e984d6ef224654c62f8e37ee39c298b8998/confine-controller-1.0.2.tar.gz", hash = "sha256:3e07effc9d24d7b00cb9d15af9df5413f6f6febf64415d0ab366a1e23138b027", size = 1356070, upload-time = "2015-09-14T15:53:35.413Z" }
 
 [[package]]
 name = "cryptography"

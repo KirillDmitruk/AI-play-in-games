@@ -1,0 +1,16 @@
+{
+  "model": "gemini-2.5-flash",
+  "plan_length": 3,
+  "thinking_budget": 0,
+  "max_output_tokens": 128,
+  "timeout_seconds": 30,
+  "max_retries": 2,
+  "retry_delay_seconds": 1,
+  "steps_per_second": 5,
+  "max_steps": 2000,
+  "max_idle_steps": 200,
+  "max_episode_requests": 100,
+  "max_session_requests": 200,
+  "max_session_tokens": 50000,
+  "memory": false
+}
